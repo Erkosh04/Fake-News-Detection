@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -195,4 +196,5 @@ with col2:
 
     st.markdown("---")
     st.caption("Ескерту: label-дереккөздегі кодтау 0/1 түрінде екеніне көз жеткізіңіз (1 = fake, 0 = real) немесе өз датасетіңізге қарай кодтауды өзгертіңіз.")
+
 
