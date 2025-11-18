@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import os
 import re
+import pickle
 
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -25,7 +26,6 @@ LEMMATIZER = WordNetLemmatizer()
 MODEL_PATH = "model.pkl"
 VECTORIZER_PATH = "vectorizer.pkl"
 
-
 # ---------------------------------------------------
 # CLEAN TEXT
 # ---------------------------------------------------
@@ -40,7 +40,6 @@ def clean_text(text):
     tokens = [LEMMATIZER.lemmatize(t) for t in tokens]
     return " ".join(tokens)
 
-
 # ---------------------------------------------------
 # FIND TEXT / LABEL COLUMNS
 # ---------------------------------------------------
@@ -50,13 +49,11 @@ def find_text_column(df):
             return col
     return df.columns[0]   # fallback
 
-
 def find_label_column(df):
     for col in df.columns:
         if col.lower() in ["label", "class", "fake", "target", "is_fake"]:
             return col
     return df.columns[-1]   # fallback
-
 
 # ---------------------------------------------------
 # TRAIN MODEL
@@ -71,7 +68,13 @@ def train_model(df):
     X = df[text_col].values
     y = df[label_col].values
 
-    stratify = y if len(np.unique(y)) > 1 else None
+    # Stratify fix
+    unique, counts = np.unique(y, return_counts=True)
+    if all(c >= 2 for c in counts):
+        stratify = y
+    else:
+        stratify = None
+        st.warning("⚠️ Stratify қолданылмайды — кейбір класс тек 1 дана ғана бар.")
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=stratify
@@ -92,11 +95,10 @@ def train_model(df):
 
     return model, vectorizer, acc, f1, rep
 
-
 # ---------------------------------------------------
 # STREAMLIT UI
 # ---------------------------------------------------
-st.title("📰 Fake News Detection App (Erkos Edition)")
+st.title("📰 Fake News Detection App")
 
 uploaded = st.file_uploader("CSV файлын жүкте")
 
@@ -118,11 +120,11 @@ if st.button("Модельді үйрету"):
         st.write("🔹 **F1-score:**", f1)
         st.text(rep)
 
-        # SAVE (NO joblib)
-        import pickle
-        pickle.dump(model, open(MODEL_PATH, "wb"))
-        pickle.dump(vectorizer, open(VECTORIZER_PATH, "wb"))
-
+        # SAVE MODEL
+        with open(MODEL_PATH, "wb") as f:
+            pickle.dump(model, f)
+        with open(VECTORIZER_PATH, "wb") as f:
+            pickle.dump(vectorizer, f)
         st.info("Модель сақталды!")
 
 st.markdown("---")
@@ -135,9 +137,10 @@ if st.button("Тексеру"):
     if not os.path.exists(MODEL_PATH):
         st.error("Алдымен модельді үйрет!")
     else:
-        import pickle
-        model = pickle.load(open(MODEL_PATH, "rb"))
-        vectorizer = pickle.load(open(VECTORIZER_PATH, "rb"))
+        with open(MODEL_PATH, "rb") as f:
+            model = pickle.load(f)
+        with open(VECTORIZER_PATH, "rb") as f:
+            vectorizer = pickle.load(f)
 
         clean = clean_text(text_input)
         vect = vectorizer.transform([clean])
