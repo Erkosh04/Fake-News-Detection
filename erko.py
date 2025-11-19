@@ -41,7 +41,7 @@ def clean_text(text):
     return " ".join(tokens)
 
 # ---------------------------------------------------
-# FIND TEXT / LABEL COLUMNS
+# FIND TEXT COLUMN
 # ---------------------------------------------------
 def find_text_column(df):
     for col in df.columns:
@@ -49,18 +49,18 @@ def find_text_column(df):
             return col
     return df.columns[0]   # fallback
 
-def find_label_column(df):
-    for col in df.columns:
-        if col.lower() in ["label", "class", "fake", "target", "is_fake"]:
-            return col
-    return df.columns[-1]   # fallback
-
 # ---------------------------------------------------
 # TRAIN MODEL
 # ---------------------------------------------------
 def train_model(df):
+
+    # Егер label жоқ болса → автомат түрде қосамыз
+    if "label" not in df.columns:
+        st.warning("⚠ Label баған жоқ → автомат түрде 'label = 1' қосылды.")
+        df["label"] = 1
+
     text_col = find_text_column(df)
-    label_col = find_label_column(df)
+    label_col = "label"
 
     st.info(f"Text бағаны: **{text_col}**, Label бағаны: **{label_col}**")
 
@@ -105,6 +105,10 @@ uploaded = st.file_uploader("CSV файлын жүкте")
 if uploaded:
     df = pd.read_csv(uploaded)
     st.success(f"Файл оқылды — {df.shape[0]} жол")
+
+    if "label" not in df.columns:
+        st.warning("⚠ CSV ішінде label жоқ → автомат түрде 1 қойылады (FAKE).")
+
     st.dataframe(df.head())
 else:
     df = None
