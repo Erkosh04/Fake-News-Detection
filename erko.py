@@ -106,12 +106,20 @@ if uploaded:
     df = pd.read_csv(uploaded)
     st.success(f"Файл оқылды — {df.shape[0]} жол")
 
+    # Егер label бағаны жоқ болса → автоматты түрде қосу
     if "label" not in df.columns:
         st.warning("⚠ CSV ішінде label жоқ → автомат түрде 1 қойылады (FAKE).")
+        df["label"] = 1
+
+    # Егер тек бір класс болса, REAL (0) класты қосу
+    if len(df["label"].unique()) == 1:
+        st.info("Тек FAKE бар → бір жол REAL (0) ретінде қосылды тест үшін.")
+        df.loc[0, "label"] = 0
 
     st.dataframe(df.head())
 else:
     df = None
+
 
 if st.button("Модельді үйрету"):
     if df is None:
@@ -154,3 +162,4 @@ if st.button("Тексеру"):
 
         st.subheader(label)
         st.code(clean)
+
